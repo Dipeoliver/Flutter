@@ -11,7 +11,7 @@ class _HomePageState extends State<HomePage> {
   String _search;
   int _offset = 0;
 
-  // buscar gif por API (nao é isntantaneo no futuro)
+  // buscar gif por API (nao é isntantaneo, é no futuro)
   Future<Map> _getGifs() async {
     http.Response response;
     if (_search == null)
@@ -19,7 +19,7 @@ class _HomePageState extends State<HomePage> {
           'https://api.giphy.com/v1/gifs/trending?api_key=CoN4HFI3ByJW9QliOGOvhDxfQkbeBDQ8&limit=25&rating=g');
     else
       response = await http.get(
-          'https://api.giphy.com/v1/gifs/search?api_key=CoN4HFI3ByJW9QliOGOvhDxfQkbeBDQ8&q=$_search=$_offset=0&rating=g&lang=pt');
+          'https://api.giphy.com/v1/gifs/search?api_key=CoN4HFI3ByJW9QliOGOvhDxfQkbeBDQ8&q=$_search&limit=20&offset=$_offset=0&rating=g&lang=pt');
     return json.decode(response.body);
   }
 
@@ -34,60 +34,83 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: Image.network(
-              'https://developers.giphy.com/static/img/dev-logo-lg.7404c00322a8.gif'),
-          centerTitle: true,
-          backgroundColor: Colors.black,
-        ),
+      appBar: AppBar(
+        title: Image.network(
+            'https://developers.giphy.com/static/img/dev-logo-lg.7404c00322a8.gif'),
+        centerTitle: true,
         backgroundColor: Colors.black,
-        body: Column(
-          children: <Widget>[
-            Padding(
-              padding: EdgeInsets.all(10),
-              child: TextFormField(
-                keyboardType: TextInputType.text,
-                decoration: InputDecoration(
-                    labelText: "Pesquise Aqui",
-                    labelStyle: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                    ),
-                    border: OutlineInputBorder()),
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white, fontSize: 18),
-              ),
+      ),
+      backgroundColor: Colors.black,
+      body: Column(
+        children: <Widget>[
+          Padding(
+            padding: EdgeInsets.all(10),
+            child: TextFormField(
+              keyboardType: TextInputType.text,
+              decoration: InputDecoration(
+                  labelText: "Pesquise Aqui",
+                  labelStyle: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                  ),
+                  border: OutlineInputBorder()),
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white, fontSize: 18),
+              onFieldSubmitted: (text){
+                setState(() { // ** ao pesquisar atualizo a tela
+                  _search = text; // ** passo o valor digitado para a função
+                });
+              },
             ),
-            // Expanded para pegar o resto da tela total
-            Expanded(
-                child: FutureBuilder(
-                  future: _getGifs(),
-                  builder: (context, snapshot) {
-                    // ira olhar o sattus da conexao do snapshot
-                    switch (snapshot.connectionState) {
-                      case ConnectionState.waiting:
-                      case ConnectionState.none:
-                        return Container(
-                          width: 600,
-                          height: 600,
-                          alignment: Alignment.center,
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white),
-                            strokeWidth: 8, // ** tamanho da animação
-                          ),
-                        );
-                      default:
-                        if (snapshot.hasError) return Container();
-                        else return _createGifTable(context, snapshot);
-                    }
-                  },
-                ))
-          ],
-        ));
+          ),
+          // Expanded para pegar o resto da tela total
+          Expanded(
+            child: FutureBuilder(
+              future: _getGifs(),
+              builder: (context, snapshot) {
+                // ira olhar o sattus da conexao do snapshot
+                switch (snapshot.connectionState) {
+                  case ConnectionState.waiting:
+                  case ConnectionState.none:
+                    return Container(
+                      width: 600,
+                      height: 600,
+                      alignment: Alignment.center,
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        strokeWidth: 8, // ** tamanho da animação
+                      ),
+                    );
+                  default:
+                    if (snapshot.hasError)
+                      return Container();
+                    else
+                      return _createGifTable(context, snapshot);
+                }
+              },
+            ),
+          )
+        ],
+      ),
+    );
   }
 }
 
-Widget _createGifTable( BuildContext context, AsyncSnapshot snapshot){
+Widget _createGifTable(BuildContext context, AsyncSnapshot snapshot) {
+  return GridView.builder(
+      padding: EdgeInsets.all(10),
+      // ** created a grid in screen
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
 
+        crossAxisCount: 2,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10
+      ),
+      itemCount: snapshot.data["data"].length,
+      itemBuilder: (context, index){
+        return GestureDetector( //** detect screen touch
+          child: Image.network(snapshot.data["data"][index]["images"]["fixed_height"]["url"], height:300, fit: BoxFit.cover),
+        );
+      }
+  );
 }
