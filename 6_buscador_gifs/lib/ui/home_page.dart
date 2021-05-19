@@ -14,12 +14,13 @@ class _HomePageState extends State<HomePage> {
   // buscar gif por API (nao é isntantaneo, é no futuro)
   Future<Map> _getGifs() async {
     http.Response response;
-    if (_search == null)
+    if (_search == null || _search == '')
       response = await http.get(
           'https://api.giphy.com/v1/gifs/trending?api_key=CoN4HFI3ByJW9QliOGOvhDxfQkbeBDQ8&limit=25&rating=g');
     else
       response = await http.get(
-          'https://api.giphy.com/v1/gifs/search?api_key=CoN4HFI3ByJW9QliOGOvhDxfQkbeBDQ8&q=$_search&limit=20&offset=$_offset=0&rating=g&lang=pt');
+          'https://api.giphy.com/v1/gifs/search?api_key=CoN4HFI3ByJW9QliOGOvhDxfQkbeBDQ8&q=$_search&limit=19&offset=$_offset&rating=g&lang=pt');
+
     return json.decode(response.body);
   }
 
@@ -59,6 +60,7 @@ class _HomePageState extends State<HomePage> {
               onFieldSubmitted: (text){
                 setState(() { // ** ao pesquisar atualizo a tela
                   _search = text; // ** passo o valor digitado para a função
+                  _offset = 0;
                 });
               },
             ),
@@ -94,23 +96,65 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-}
-
-Widget _createGifTable(BuildContext context, AsyncSnapshot snapshot) {
-  return GridView.builder(
-      padding: EdgeInsets.all(10),
-      // ** created a grid in screen
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-
-        crossAxisCount: 2,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10
-      ),
-      itemCount: snapshot.data["data"].length,
-      itemBuilder: (context, index){
-        return GestureDetector( //** detect screen touch
-          child: Image.network(snapshot.data["data"][index]["images"]["fixed_height"]["url"], height:300, fit: BoxFit.cover),
-        );
+  // ** se estiver pesquisando quero deixar espaço no final
+  int _getCount(List data){
+    if (_search == null){
+      return data.length;
+    }
+    else
+      {
+        return data.length + 1; // ** '+ 1 pq em na url so tem 19'
       }
-  );
+  }
+
+
+  Widget _createGifTable(BuildContext context, AsyncSnapshot snapshot) {
+    return GridView.builder(
+        padding: EdgeInsets.all(10),
+        // ** created a grid in screen
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+
+            crossAxisCount: 2,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10
+        ),
+        itemCount: _getCount(snapshot.data["data"]), // passando tamanho
+        itemBuilder: (context, index){
+          // ** se nao estiver pesquisando retorna abaixo
+          if(_search == null || index < snapshot.data["data"].length)
+            return GestureDetector( //** detect screen touch
+              
+              child: Column(
+                children: [
+                  Image.network(snapshot.data["data"][index]["images"]["fixed_height"]["url"], height:150, fit: BoxFit.cover),
+                  Text(snapshot.data["data"][index]["title"], style: TextStyle(color: Colors.white, fontSize: 5),)
+                ],
+              )
+              
+            );
+          else
+            // se estiver pesquisando retorna botão para aparecer mais gis
+            
+            return Container(
+              child: GestureDetector(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.add, color : Colors.white,size: 70,),
+                    Text("Carregar mais...", style: TextStyle(color:Colors.white, fontSize: 22),)
+
+                  ],
+                ),
+                onTap: (){   // ** ao clicar no '+' ira carregar mais 19 na tela
+                  setState(() {
+                    _offset += 19;
+                  });
+                },
+              ),
+            );
+        }
+    );
+  }
 }
+
+
